@@ -20,10 +20,13 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
     
     //the object that will give the GPS coordinates
     let locationManager = CLLocationManager()
+    var location: CLLocation?
+    var updatingLocation = false
+    var lastLocationError: Error?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        updateLabels()
     }
     //if location services are disabled
     func showLocationServicesDeniedAlert() {
@@ -48,17 +51,79 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
             return
         }
         //
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        locationManager.startUpdatingLocation()
+        startLocationManager()
+        updateLabels()
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("didFailWithError \(error)")
+        //the location manager was unable to obtain a location right now
+        if(error as NSError).code == CLError.locationUnknown.rawValue {
+            return
+        }
+        //In the case of a more serious error, you store the error object       
+        lastLocationError = error
+        stopLocationManager()
+        updateLabels()
+    }
+    func startLocationManager() {
+        if CLLocationManager.locationServicesEnabled() {
+            locationManager.delegate = self
+            locationManager.desiredAccuracy =
+            kCLLocationAccuracyNearestTenMeters
+            locationManager.startUpdatingLocation()
+            updatingLocation = true
+        }
+    }
+    
+    func stopLocationManager() {
+        if updatingLocation {
+            locationManager.stopUpdatingLocation()
+            locationManager.delegate = nil
+            updatingLocation = false
+        }
     }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let newLocation = locations.last!
         print("didUpdateLocations \(newLocation)")
+        
+        location = newLocation
+        //After receiving a valid coordinate, any previous error you may have encountered is no longer applicable
+        lastLocationError = nil
+        updateLabels()
+    }
+    
+    func updateLabels() {
+        if let location = location {
+            latitudeLabel.text = String(format: "%.8f",location.coordinate.latitude)
+            longitudeLabel.text = String(format: "%.8f",location.coordinate.longitude)
+            tagButton.isHidden = false
+            messageLabel.text = ""
+        } else {
+            latitudeLabel.text = ""
+            longitudeLabel.text = ""
+            addressLabel.text = ""
+            tagButton.isHidden = true
+            //messageLabel.text = "Tap 'Get My Location' to Start"
+            let statusMessage:String
+            //If the location manager gave an error
+            if let error = lastLocationError as NSError? {
+                if error.domain == kCLErrorDomain && error.code == CLError.denied.rawValue {
+                    statusMessage = "Location Services Disabled"
+                }else{
+                    statusMessage = "Error Getting Location"
+                }
+                //disabled Location Services completely on the device - not only for this app
+            }else if !CLLocationManager.locationServicesEnabled() {
+                    statusMessage = "Location Services Disabled"
+            }else if updatingLocation {
+                statusMessage = "Searching..."
+            }else {
+                statusMessage = "Tap 'Get My Location' to Start"
+            }
+            messageLabel.text = statusMessage
+            
+        }
     }
 
     override func didReceiveMemoryWarning() {
