@@ -50,8 +50,15 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
             showLocationServicesDeniedAlert()
             return
         }
-        //
-        startLocationManager()
+        //If the button is pressed while the app is already doing the location fetching, you stop the location manager
+        if updatingLocation {
+            stopLocationManager()
+        }else {
+            location = nil
+            lastLocationError = nil
+             startLocationManager()
+        }
+       
         updateLabels()
     }
     
@@ -86,11 +93,27 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let newLocation = locations.last!
         print("didUpdateLocations \(newLocation)")
-        
-        location = newLocation
-        //After receiving a valid coordinate, any previous error you may have encountered is no longer applicable
-        lastLocationError = nil
-        updateLabels()
+        //
+        if newLocation.timestamp.timeIntervalSinceNow < -5 {
+            return
+        }
+        //ignore if less than 0
+        if newLocation.horizontalAccuracy < 0 {
+            return
+        }
+        //if this is the very first location reading (== nil) or the new location is more accurate than the previous reading, continue
+        if location == nil || location!.horizontalAccuracy > newLocation.horizontalAccuracy {
+            //clear out any previous error and stores the new CLLocation object into the location variable.
+            lastLocationError = nil
+            location = newLocation
+            /*If the new location’s accuracy is equal to or better than the desired accuracy(which we previously set to 10), you can call it a day and stop asking the location manager for updates*/
+            if newLocation.horizontalAccuracy <= locationManager.desiredAccuracy {
+                print("*** We're done!")
+                stopLocationManager()
+            }
+            updateLabels()
+        }
+
     }
     
     func updateLabels() {
@@ -123,6 +146,15 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
             }
             messageLabel.text = statusMessage
             
+        }
+        configureGetButton()
+    }
+    
+    func configureGetButton() {
+        if updatingLocation {
+            getButton.setTitle("Stop", for: .normal)
+        }else {
+            getButton.setTitle("Get My Location", for: .normal)
         }
     }
 
