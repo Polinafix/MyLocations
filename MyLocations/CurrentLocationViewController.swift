@@ -60,8 +60,11 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
         if updatingLocation {
             stopLocationManager()
         }else {
+            //start over with a clean state
             location = nil
             lastLocationError = nil
+            placemark = nil
+            lastGeocodingError = nil
              startLocationManager()
         }
        
@@ -79,6 +82,7 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
         stopLocationManager()
         updateLabels()
     }
+    
     func startLocationManager() {
         if CLLocationManager.locationServicesEnabled() {
             locationManager.delegate = self
@@ -147,6 +151,16 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
             longitudeLabel.text = String(format: "%.8f",location.coordinate.longitude)
             tagButton.isHidden = false
             messageLabel.text = ""
+            
+            if let placemark = placemark {
+                addressLabel.text = string(from:placemark)
+            }else if performingReverseGeocoding {
+                addressLabel.text = "Searching for Address..."
+            }else if lastGeocodingError != nil {
+                addressLabel.text = "Error finding address"
+            }else{
+                addressLabel.text = "No Address Found"
+            }
         } else {
             latitudeLabel.text = ""
             longitudeLabel.text = ""
@@ -174,6 +188,34 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
         }
         configureGetButton()
     }
+    //method for formatting the CLPlacemark object into a string
+    func string(from placemark: CLPlacemark) -> String {
+        var line1 = ""
+        //house number
+        if let s = placemark.subThoroughfare {
+            line1 += s + " "
+        }
+        //street name
+        if let s = placemark.thoroughfare {
+            line1 += s
+        }
+        var line2 = ""
+        
+    //the city
+        if let s = placemark.locality {
+            line2 += s + " "
+        }
+        //state
+        if let s = placemark.administrativeArea {
+            line2 += s + " "
+        }
+        //zip code
+        if let s = placemark.postalCode {
+            line2 += s
+        }
+        // 5
+        return line1 + "\n" + line2
+    }
     
     func configureGetButton() {
         if updatingLocation {
@@ -181,11 +223,6 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
         }else {
             getButton.setTitle("Get My Location", for: .normal)
         }
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
 
