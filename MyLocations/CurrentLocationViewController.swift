@@ -23,6 +23,12 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
     var location: CLLocation?
     var updatingLocation = false
     var lastLocationError: Error?
+    //perform the geocoding
+    let geocoder = CLGeocoder()
+    //object that contains the address results
+    var placemark: CLPlacemark?
+    var performingReverseGeocoding = false
+    var lastGeocodingError: Error?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,6 +118,25 @@ class CurrentLocationViewController: UIViewController,CLLocationManagerDelegate 
                 stopLocationManager()
             }
             updateLabels()
+            
+            //geocoding
+            if !performingReverseGeocoding {
+                print("***Going to geocode")
+                performingReverseGeocoding = true
+                /*
+                 telling the CLGeocoder object that you want to reverse geocode the location, and that the code in the block following completionHandler: should be executed as soon as the geocoding is completed. */
+                geocoder.reverseGeocodeLocation(newLocation, completionHandler: { (placemarks, error) in
+                    self.lastGeocodingError = error
+                    if error == nil,let p = placemarks, !p.isEmpty {
+                        self.placemark = p.last!
+                    }else {
+                        self.placemark = nil
+                    }
+                    self.performingReverseGeocoding = false
+                    self.updateLabels()
+                 
+                })
+            }
         }
 
     }
