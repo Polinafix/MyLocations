@@ -5,7 +5,8 @@
 	<key>CFBundleGetInfoString</key>
 	<string></string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app lets you keep track of interesting places. It needs access to the GPScoordinates for your location.</string>
+	<string>This app lets you keep track of interesting places. It needs access to the GPS
+coordinates for your location.</string>
 	<key>CFBundleDisplayName</key>
 	<string></string>
 	<key>CFBundleSignature</key>
@@ -41,6 +42,7 @@
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
+		<string>location-services</string>
 	</array>
 	<key>UIStatusBarTintParameters</key>
 	<dict>
